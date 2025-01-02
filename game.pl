@@ -63,7 +63,8 @@ get_valid_move(Board, Player, (FromRow, FromCol), (ToRow, ToCol), Final) :-
 % Valid move check
 valid_move(Board, Player, From, To ,Final) :-
         piece_at(Board, From, Player),
-        
+        other_player(Player, OtherPlayer),
+        piece_at(Board,To,OtherPlayer),
         calculate_dir(From, To, Dir),
         write('Direction calculated: '), write(Dir), nl,
         direction_to_delta(Board, From, Dir, To, Final),

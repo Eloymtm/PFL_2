@@ -87,25 +87,6 @@ calculate_dir((FromRow, FromCol), (ToRow, ToCol), Dir) :-
 calculate_dir((FromRow, FromCol), (ToRow, ToCol), Dir) :-
         ToRow > FromRow, ToCol > FromCol -> Dir = dr.
         
-calculate_dir((FromRow, FromCol), (ToRow, ToCol), Dir) :-
-    DiffRow is ToRow - FromRow,
-    DiffCol is ToCol - FromCol,
-    abs(DiffRow) =:= abs(DiffCol),  % Check if it's a perfect diagonal
-    TempRow is FromRow, TempCol is FromCol,
-    checkDiagonalPath(FromRow, FromCol, ToRow, ToCol, Board, e).
-
-checkDiagonalPath(Row, Col, ToRow, ToCol, Board, _) :-
-    Row =:= ToRow, Col =:= ToCol.
-checkDiagonalPath(Row, Col, ToRow, ToCol, Board, Empty) :-
-    NextRow is Row + sign(ToRow - Row),
-    NextCol is Col + sign(ToCol - Col),
-    piece_at(Board, (NextRow, NextCol), Empty),
-    checkDiagonalPath(NextRow, NextCol, ToRow, ToCol, Board, Empty).
-% Direction to delta conversion
-
-
-     OtherPiece is e,
-    Final = (ToRow, NewCol).
 
 direction_to_delta(Board, (FromRow,FromCol), r,(ToRow, ToCol), Final) :-
     NewCol is ToCol - 1,
@@ -235,7 +216,6 @@ play_game(Board, Player) :-
     format('~w\'s turn.~n', [Player]),
     get_valid_move(Board, Player, From, To, Final),
     make_move(Board, From, To, Final, NewBoard),
-    clear_console,
     display_game(NewBoard),
     next_player(Player, NextPlayer),
     play_game(NewBoard, NextPlayer).

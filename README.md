@@ -23,3 +23,12 @@ Após o movimento, a peça do oponente com a qual a peça do jogador ativo bate 
 
 #### FIM DO JOGO
 O jogador que não conseguir fazer uma captura na sua vez perde o jogo.
+
+
+
+### Conclusão
+O jogo Collapse foi implementado com sucesso, através da linguagem Prolog. Dispõe de vários modos de jogo - Player vs Player, Player vs Computer e Computer vs Computer - tendo os Computers 2 níveis de dificuldade. 
+
+### Bibliografia
+As regras do jogo foram consultadas neste site:
+- [Collapse_Rules](https://cdn.shopify.com/s/files/1/0578/3502/8664/files/Collapse_EN.pdf?v=1713463846)

@@ -11,13 +11,15 @@ play :-
 
 % Initial board setup
 initial_board([[b,w,b,w,b,w,b,w,b],[w,e,e,e,e,e,e,e,w],[e,e,e,e,e,e,e,e,e],[b,e,e,e,e,e,e,e,b],[w,b,w,b,w,b,w,b,w]]).
+inversa([[w,b,w,b,w,b,w,b,w],[b,e,e,e,e,e,e,e,b],[e,e,e,e,e,e,e,e,e],[w,e,e,e,e,e,e,e,w],[b,w,b,w,b,w,b,w,b]]).
 
 % Display the game board
 display_game(Board) :-
     nl,
     write('   1   2   3   4   5   6   7   8   9'), nl,
-    display_board(Board, 1),
+    display_board(Board, 5),
     nl.
+
 
 % Display board helper
 display_board([], _).
@@ -26,7 +28,7 @@ display_board([Row|Rest], RowNum) :-
     display_row(Row),  % Added closing border
     nl,
     write(' '), nl,
-    NextRow is RowNum + 1,
+    NextRow is RowNum - 1,
     display_board(Rest, NextRow).
 
 
@@ -40,14 +42,24 @@ display_cell(b) :- write('\e[48;5;0m B \e[0m').  % b piece with b background
 display_cell(w) :- write('\e[48;5;255m W \e[0m').  % w piece with w background
 display_cell(e) :- write('\e[48;5;244m   \e[0m').
 
+
+translate(1, 5).
+translate(2, 4).
+translate(3, 3).
+translate(4, 2).
+translate(5, 1).
+
+
 % Get valid move
 get_valid_move(Board, Player, (FromRow, FromCol), (ToRow, ToCol), Final) :-
     repeat,
     write('Enter source position (row col): '),
-    read((FromRow, FromCol)),
+    read((AlmostRow, FromCol)),
+    translate(AlmostRow, FromRow),
     (valid_position(FromRow, FromCol) -> 
         write('Enter destination position (row col): '),
-        read((ToRow, ToCol)),
+        read((Almost, ToCol)),
+        translate(Almost, ToRow),
         (valid_move(Board, Player, (FromRow, FromCol), (ToRow, ToCol), Final) -> 
             true
         ;   
@@ -63,13 +75,12 @@ get_valid_move(Board, Player, (FromRow, FromCol), (ToRow, ToCol), Final) :-
 % Valid move check
 valid_move(Board, Player, From, To ,Final) :-
         piece_at(Board, From, Player),
-        
+        other_player(Player, OtherPlayer),
+        piece_at(Board,To,OtherPlayer),
         calculate_dir(From, To, Dir),
-        write('Direction calculated: '), write(Dir), nl,
-        direction_to_delta(Board, From, Dir, To, Final),
-        write('Destination position is valid.').
+        direction_to_delta(Board, From, Dir, To, Final).
         
-  
+
 calculate_dir((FromRow, FromCol), (ToRow, ToCol), Dir) :-
         ToRow < FromRow, ToCol is FromCol -> Dir = u.
 calculate_dir((FromRow, FromCol), (ToRow, ToCol), Dir) :-
@@ -78,34 +89,39 @@ calculate_dir((FromRow, FromCol), (ToRow, ToCol), Dir) :-
         ToRow is FromRow, ToCol < FromCol -> Dir = l.
 calculate_dir((FromRow, FromCol), (ToRow, ToCol), Dir) :-
         ToRow is FromRow, ToCol > FromCol -> Dir = r.
-calculate_dir((FromRow, FromCol), (ToRow, ToCol), Dir) :-
-        ToRow < FromRow, ToCol < FromCol -> Dir = ul.
-calculate_dir((FromRow, FromCol), (ToRow, ToCol), Dir) :-
-        ToRow < FromRow, ToCol > FromCol -> Dir = ur.
-calculate_dir((FromRow, FromCol), (ToRow, ToCol), Dir) :-
-        ToRow > FromRow, ToCol < FromCol -> Dir = dl.
-calculate_dir((FromRow, FromCol), (ToRow, ToCol), Dir) :-
-        ToRow > FromRow, ToCol > FromCol -> Dir = dr.
-        
-calculate_dir((FromRow, FromCol), (ToRow, ToCol), Dir) :-
-    DiffRow is ToRow - FromRow,
-    DiffCol is ToCol - FromCol,
-    abs(DiffRow) =:= abs(DiffCol),  % Check if it's a perfect diagonal
-    TempRow is FromRow, TempCol is FromCol,
-    checkDiagonalPath(FromRow, FromCol, ToRow, ToCol, Board, e).
+calculate_dir((FromRow, FromCol), (ToRow, ToCol), Dir) :-   
+   NewRow is ToRow,
+   NewCol is ToCol,
+   check_odd(FromRow, FromCol,0),
+   check_diagonal((NewRow, NewCol), (FromRow, FromCol), Dir).
 
-checkDiagonalPath(Row, Col, ToRow, ToCol, Board, _) :-
-    Row =:= ToRow, Col =:= ToCol.
-checkDiagonalPath(Row, Col, ToRow, ToCol, Board, Empty) :-
-    NextRow is Row + sign(ToRow - Row),
-    NextCol is Col + sign(ToCol - Col),
-    piece_at(Board, (NextRow, NextCol), Empty),
-    checkDiagonalPath(NextRow, NextCol, ToRow, ToCol, Board, Empty).
-% Direction to delta conversion
+check_diagonal((FromRow, FromCol), (FromRow, FromCol), Dir).
+check_diagonal((NewRow, NewCol), (FromRow, FromCol), ul) :-
+  NextRow is NewRow + 1,
+  NextCol is NewCol + 1,
+  valid_position(NextRow,NextCol),
+  check_diagonal((NextRow, NextCol), (FromRow, FromCol), ul).
+check_diagonal((NewRow, NewCol), (FromRow, FromCol), ur) :-
+  NextRow is NewRow + 1,
+  NextCol is NewCol - 1,   
+  valid_position(NextRow,NextCol),
+  check_diagonal((NextRow, NextCol), (FromRow, FromCol), ur).
 
+check_diagonal((NewRow, NewCol), (FromRow, FromCol), dl) :-
+  NextRow is NewRow - 1,
+  NextCol is NewCol + 1,
+  valid_position(NextRow,NextCol),
+  check_diagonal((NextRow, NextCol), (FromRow, FromCol), dl).
 
-     OtherPiece is e,
-    Final = (ToRow, NewCol).
+check_diagonal((NewRow, NewCol), (FromRow, FromCol), dr) :-
+  NextRow is NewRow - 1,
+  NextCol is NewCol - 1,
+  valid_position(NextRow,NextCol),
+  check_diagonal((NextRow, NextCol), (FromRow, FromCol), dr).
+
+check_odd(Row, Col, Odd):-
+    N is Row + Col,
+    Odd is N mod 2.
 
 direction_to_delta(Board, (FromRow,FromCol), r,(ToRow, ToCol), Final) :-
     NewCol is ToCol - 1,
@@ -191,8 +207,7 @@ make_move(Board, (FromRow, FromCol),(ToRow, ToCol),(FinalRow,FinalCol), NewBoard
 % Helper predicates
 piece_at(Board, (Row, Col), Piece) :-
     nth1(Row, Board, BoardRow),
-    nth1(Col, BoardRow, Piece),
-    write('Piece at source position is correct.'), nl.
+    nth1(Col, BoardRow, Piece).
 
 set_cell(Board, (Row, Col), Value, NewBoard) :-
     nth1(Row, Board, OldRow),
@@ -216,17 +231,61 @@ next_player(b, w).
 other_player(w, b).
 other_player(b, w).
 
-% Check if game is over
+get_all_valid_moves(Board, Player, Moves) :-
+    findall(
+        (From, To, Final),
+        get_single_valid_move(Board, Player, From, To, Final),
+        Moves
+    ).
+
+% Find a single valid move
+get_single_valid_move(Board, Player, From, To, Final) :-
+    get_player_position(From),
+    piece_at(Board, From, Player),
+    get_target_position(To),
+    validate_move(Board, Player, From, To, Final).
+
+% Generate all possible board positions
+get_player_position((Row, Col)) :-
+    member(Row, [1,2,3,4,5]),
+    member(Col, [1,2,3,4,5,6,7,8,9]).
+
+% Generate all possible target positions
+get_target_position((Row, Col)) :-
+    member(Row, [1,2,3,4,5]),
+    member(Col, [1,2,3,4,5,6,7,8,9]).
+
+% Validate a single move
+validate_move(Board, Player, From, To, Final) :-
+    other_player(Player, OtherPlayer),
+    piece_at(Board, To, OtherPlayer),
+    calculate_dir(From, To, Dir),
+    direction_to_delta(Board, From, Dir, To, Final).
+
+% Improved game over check using get_all_valid_moves
 game_over(Board, Player) :-
-    \+ can_capture(Board, Player).
+    get_all_valid_moves(Board, Player, Moves),
+    length(Moves, 0).
 
-% Check if player can capture
-can_capture(Board, Player) :-
-    piece_at(Board, (Row, Col), Player),
-    member(Dir, [u,d,l,r,ul,ur,dl,dr]),
-    valid_move(Board, Player, (Row, Col), Dir, _).
+% Helper predicate to display all valid moves
+display_valid_moves(Board, Player) :-
+    get_all_valid_moves(Board, Player, Moves),
+    format('Valid moves for player ~w:~n', [Player]),
+    check_and_display_moves(Moves).
 
-% Announce winner
+% Check if moves exist and display them
+check_and_display_moves([]) :-
+    write('No valid moves available - Game Over!'),
+    nl.
+check_and_display_moves(Moves) :-
+    display_moves_list(Moves).
+
+% Display list of moves recursively
+display_moves_list([]).
+display_moves_list([(From, To, Final)|Rest]) :-
+    format('From: ~w, Captures: ~w, Lands: ~w~n', [From, To, Final]),
+    display_moves_list(Rest).
+
 announce_winner(Player) :-
     other_player(Player, Winner),
     format('Game Over! ~w wins!~n', [Winner]).
@@ -235,7 +294,6 @@ play_game(Board, Player) :-
     format('~w\'s turn.~n', [Player]),
     get_valid_move(Board, Player, From, To, Final),
     make_move(Board, From, To, Final, NewBoard),
-    clear_console,
     display_game(NewBoard),
     next_player(Player, NextPlayer),
     play_game(NewBoard, NextPlayer).

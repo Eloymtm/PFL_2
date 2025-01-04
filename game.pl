@@ -1,4 +1,5 @@
 :- use_module(library(lists)).
+:- use_module(library(random)).
 
 % Game configuration
 board_size(9, 5).  % 9x5 board
@@ -49,6 +50,36 @@ translate(3, 3).
 translate(4, 2).
 translate(5, 1).
 
+
+% Play game with difficulty
+play_game(Board, Player) :-
+    player_mode(pvc),
+    difficulty(easy),
+    Player = b,
+    !,
+    bot_easy_move(Board, NewBoard),
+    display_game(NewBoard),
+    next_player(Player, NextPlayer),
+    play_game(NewBoard, NextPlayer).
+
+play_game(Board, Player) :-
+    format('~w\'s turn.~n', [Player]),
+    get_valid_move(Board, Player, From, To, Final),
+    make_move(Board, From, To, Final, NewBoard),
+    display_game(NewBoard),
+    next_player(Player, NextPlayer),
+    play_game(NewBoard, NextPlayer).
+
+% Bot easy move
+bot_easy_move(Board, NewBoard) :-
+    get_all_valid_moves(Board, b, Moves),
+    random_member((From, To, Final), Moves),
+    make_move(Board, From, To, Final, NewBoard).
+
+random_member(X, List) :-
+    length(List, Len),
+    random(0, Len, Index),
+    nth0(Index, List, X).
 
 % Get valid move
 get_valid_move(Board, Player, (FromRow, FromCol), (ToRow, ToCol), Final) :-

@@ -2,6 +2,7 @@
 
 % Menu display and handling
 :- dynamic player_mode/1.
+:- dynamic difficulty/1.
 
 % Main menu
 display_main_menu :-
@@ -33,9 +34,7 @@ handle_menu_option(1) :-
 handle_menu_option(2) :-
     retractall(player_mode(_)),
     asserta(player_mode(pvc)),
-    initial_board(Board),
-    display_game(Board),
-    play_game(Board, w).
+    select_difficulty.
 handle_menu_option(3) :-
     retractall(player_mode(_)),
     asserta(player_mode(cvc)),
@@ -52,6 +51,45 @@ handle_menu_option(_) :-
     write('Invalid option! Please try again.\n'),
     sleep(2),
     menu.
+
+
+% Difficulty selection menu
+select_difficulty :-
+    clear_console,
+    write('=================================\n'),
+    write('       SELECT DIFFICULTY         \n'),
+    write('=================================\n'),
+    write('1. Easy\n'),
+    write('2. Medium\n'),
+    write('3. Hard\n'),
+    write('=================================\n'),
+    write('Choose an option (1-3): '),
+    read(DifficultyOption),
+    handle_difficulty_option(DifficultyOption).
+
+handle_difficulty_option(1) :-
+    retractall(difficulty(_)),
+    asserta(difficulty(easy)),
+    initial_board(Board),
+    display_game(Board),
+    play_game(Board, w).
+handle_difficulty_option(2) :-
+    retractall(difficulty(_)),
+    asserta(difficulty(medium)),
+    initial_board(Board),
+    display_game(Board),
+    play_game(Board, w).
+handle_difficulty_option(3) :-
+    retractall(difficulty(_)),
+    asserta(difficulty(hard)),
+    initial_board(Board),
+    display_game(Board),
+    play_game(Board, w).
+handle_difficulty_option(_) :-
+    write('Invalid option! Please try again.\n'),
+    sleep(2),
+    select_difficulty.
+
 
 % Clear console
 clear_console :-

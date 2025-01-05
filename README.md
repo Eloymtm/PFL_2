@@ -52,6 +52,7 @@ O estado do jogo é representado pela configuração atual do tabuleiro e pelo j
 
 #### Estado Intermédio:
 
+![](meio.png)
 
 #### Estado Final:
 

@@ -62,19 +62,33 @@ play_game(Board, Player) :-
     next_player(Player, NextPlayer),
     play_game(NewBoard, NextPlayer).
 
-play_game(Board, Player) :-
-    format('~w\'s turn.~n', [Player]),
-    get_valid_move(Board, Player, From, To, Final),
-    make_move(Board, From, To, Final, NewBoard),
+play_game_cvc(Board, Player) :-
+    player_mode(cvc),
+    difficulty1(Difficulty1),
+    difficulty2(Difficulty2),
+    play_turn_cvc(Board, Player, Difficulty1, Difficulty2).
+
+play_turn_cvc(Board, w, Difficulty1, Difficulty2) :-
+    bot_move(Board, w, Difficulty1, NewBoard),
     display_game(NewBoard),
-    next_player(Player, NextPlayer),
-    play_game(NewBoard, NextPlayer).
+    (game_over(NewBoard, w) -> announce_winner(w) ; play_turn_cvc(NewBoard, b, Difficulty1, Difficulty2)).
+play_turn_cvc(Board, b, Difficulty1, Difficulty2) :-
+    bot_move(Board, b, Difficulty2, NewBoard),
+    display_game(NewBoard),
+    (game_over(NewBoard, b) -> announce_winner(b) ; play_turn_cvc(NewBoard, w, Difficulty1, Difficulty2)).
+
+% Bot move based on difficulty
+bot_move(Board, Player, easy, NewBoard) :-
+    bot_easy_move(Board, NewBoard).
+%bot_move(Board, Player, medium, NewBoard) :-
+ %   bot_medium_move(Board, NewBoard). % Implement this function for medium difficulty
 
 % Bot easy move
 bot_easy_move(Board, NewBoard) :-
     get_all_valid_moves(Board, b, Moves),
     random_member((From, To, Final), Moves),
     make_move(Board, From, To, Final, NewBoard).
+
 
 random_member(X, List) :-
     length(List, Len),

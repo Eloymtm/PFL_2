@@ -3,6 +3,8 @@
 % Menu display and handling
 :- dynamic player_mode/1.
 :- dynamic difficulty/1.
+:- dynamic difficulty1/1.
+:- dynamic difficulty2/1.
 
 % Main menu
 display_main_menu :-
@@ -38,9 +40,7 @@ handle_menu_option(2) :-
 handle_menu_option(3) :-
     retractall(player_mode(_)),
     asserta(player_mode(cvc)),
-    initial_board(Board),
-    display_game(Board),
-    play_game(Board, w).
+    select_difficulty_cvc.
 handle_menu_option(4) :-
     display_rules,
     menu.
@@ -61,9 +61,8 @@ select_difficulty :-
     write('=================================\n'),
     write('1. Easy\n'),
     write('2. Medium\n'),
-    write('3. Hard\n'),
     write('=================================\n'),
-    write('Choose an option (1-3): '),
+    write('Choose an option (1-2): '),
     read(DifficultyOption),
     handle_difficulty_option(DifficultyOption).
 
@@ -79,17 +78,66 @@ handle_difficulty_option(2) :-
     initial_board(Board),
     display_game(Board),
     play_game(Board, w).
-handle_difficulty_option(3) :-
-    retractall(difficulty(_)),
-    asserta(difficulty(hard)),
-    initial_board(Board),
-    display_game(Board),
-    play_game(Board, w).
 handle_difficulty_option(_) :-
     write('Invalid option! Please try again.\n'),
     sleep(2),
     select_difficulty.
 
+
+% Difficulty selection menu for Computer vs Computer
+select_difficulty_cvc :-
+    clear_console,
+    write('=================================\n'),
+    write('   SELECT DIFFICULTY FOR CPU 1   \n'),
+    write('=================================\n'),
+    write('1. Easy\n'),
+    write('2. Medium\n'),
+    write('=================================\n'),
+    write('Choose an option (1-2): '),
+    read(DifficultyOption1),
+    handle_difficulty_option_cvc1(DifficultyOption1).
+
+handle_difficulty_option_cvc1(1) :-
+    retractall(difficulty1(_)),
+    asserta(difficulty1(easy)),
+    select_difficulty_cvc2.
+handle_difficulty_option_cvc1(2) :-
+    retractall(difficulty1(_)),
+    asserta(difficulty1(medium)),
+    select_difficulty_cvc2.
+handle_difficulty_option_cvc1(_) :-
+    write('Invalid option! Please try again.\n'),
+    sleep(2),
+    select_difficulty_cvc.
+
+select_difficulty_cvc2 :-
+    clear_console,
+    write('=================================\n'),
+    write('   SELECT DIFFICULTY FOR CPU 2   \n'),
+    write('=================================\n'),
+    write('1. Easy\n'),
+    write('2. Medium\n'),
+    write('=================================\n'),
+    write('Choose an option (1-2): '),
+    read(DifficultyOption2),
+    handle_difficulty_option_cvc2(DifficultyOption2).
+
+handle_difficulty_option_cvc2(1) :-
+    retractall(difficulty2(_)),
+    asserta(difficulty2(easy)),
+    initial_board(Board),
+    display_game(Board),
+    play_game_cvc(Board, w).
+handle_difficulty_option_cvc2(2) :-
+    retractall(difficulty2(_)),
+    asserta(difficulty2(medium)),
+    initial_board(Board),
+    display_game(Board),
+    play_game_cvc(Board, w).
+handle_difficulty_option_cvc2(_) :-
+    write('Invalid option! Please try again.\n'),
+    sleep(2),
+    select_difficulty_cvc2.
 
 % Clear console
 clear_console :-

@@ -1,5 +1,4 @@
 :- use_module(library(lists)).
-:- use_module(library(random)).
 
 % Game configuration
 board_size(9, 5).  % 9x5 board
@@ -11,7 +10,7 @@ play :-
     play_game(Board, w).  % w moves first
 
 % Initial board setup
-initial_board([[b,w,b,w,b,w,b,w,b],[w,e,e,e,e,e,e,e,w],[e,e,e,e,e,e,e,e,e],[b,e,e,e,e,e,e,e,b],[w,b,w,b,w,b,w,b,w]]).
+initial_board([[b,w,b,w,b,w,b,w,b],[w,e,w,e,e,e,e,e,w],[e,e,e,e,e,e,e,e,e],[b,e,e,e,e,e,e,e,b],[w,b,w,b,w,b,w,b,w]]).
 inversa([[w,b,w,b,w,b,w,b,w],[b,e,e,e,e,e,e,e,b],[e,e,e,e,e,e,e,e,e],[w,e,e,e,e,e,e,e,w],[b,w,b,w,b,w,b,w,b]]).
 
 % Display the game board
@@ -82,73 +81,127 @@ random_member(X, List) :-
     nth0(Index, List, X).
 
 % Get valid move
-get_valid_move(Board, Player, (FromRow, FromCol), (ToRow, ToCol), Final) :-
+get_valid_move(Board, Player, (FromRow, FromCol), (ToRow, ToCol), Final):-
     repeat,
     write('Enter source position (row col): '),
     read((AlmostRow, FromCol)),
     translate(AlmostRow, FromRow),
-    (valid_position(FromRow, FromCol) -> 
-        write('Enter destination position (row col): '),
-        read((Almost, ToCol)),
-        translate(Almost, ToRow),
-        (valid_move(Board, Player, (FromRow, FromCol), (ToRow, ToCol), Final) -> 
-            true
-        ;   
-            write('Invalid move, try again.'), nl,
-            fail
-        )
-    ;   
-        write('Invalid position, try again.'), nl,
-        fail
-    ),
+    check_source_position(Board, Player, FromRow, FromCol),
+    !,
+    write('Enter destination position (row col): '),
+    read((Almost, ToCol)),
+    translate(Almost, ToRow),
+    check_destination_move(Board, Player, (FromRow, FromCol), (ToRow, ToCol), Final),
+    !,
     other_player(Player, OtherPlayer).
+
+check_source_position(_, _, Row, Col) :-
+    valid_position(Row, Col),
+    !.
+check_source_position(_, _, _, _):-
+    write('Invalid position, try again.'),
+    nl,
+    fail.
+
+check_destination_move(Board, Player, From, To, Final):-
+    valid_move(Board, Player, From, To, Final),
+    !.
+check_destination_move(_, _, _, _, _):-
+    write('Invalid move, try again.'),
+    nl,
+    fail.
 
 % Valid move check
 valid_move(Board, Player, From, To ,Final) :-
         piece_at(Board, From, Player),
         other_player(Player, OtherPlayer),
         piece_at(Board,To,OtherPlayer),
-        calculate_dir(From, To, Dir),
+        calculate_dir(From, To, Dir,Player),
         direction_to_delta(Board, From, Dir, To, Final).
         
 
-calculate_dir((FromRow, FromCol), (ToRow, ToCol), Dir) :-
-        ToRow < FromRow, ToCol is FromCol -> Dir = u.
-calculate_dir((FromRow, FromCol), (ToRow, ToCol), Dir) :-
-        ToRow > FromRow, ToCol is FromCol -> Dir = d.
-calculate_dir((FromRow, FromCol), (ToRow, ToCol), Dir) :-
-        ToRow is FromRow, ToCol < FromCol -> Dir = l.
-calculate_dir((FromRow, FromCol), (ToRow, ToCol), Dir) :-
-        ToRow is FromRow, ToCol > FromCol -> Dir = r.
-calculate_dir((FromRow, FromCol), (ToRow, ToCol), Dir) :-   
+calculate_dir((FromRow, FromCol), (ToRow, ToCol), Dir,Player) :-
+        ToRow < FromRow, ToCol is FromCol,
+        NewRow is ToRow,
+        Dir=u,
+        check_vertical_line(ToCol,NewRow,FromRow,ToRow,u,Player).
+calculate_dir((FromRow, FromCol), (ToRow, ToCol), Dir,Player) :-
+        ToRow > FromRow, ToCol is FromCol,
+        NewRow is ToRow,
+        Dir=d,
+        check_vertical_line(ToCol,NewRow,FromRow,ToRow,d,Player).
+calculate_dir((FromRow, FromCol), (ToRow, ToCol), Dir,Player) :-
+        ToRow is FromRow, ToCol < FromCol,
+        NewRow is ToRow,
+        Dir=l,
+        check_horizontal_line(ToRow,NewCol,FromCol,ToCol,l,Player).
+calculate_dir((FromRow, FromCol), (ToRow, ToCol), Dir,Player) :-
+        ToRow is FromRow, ToCol > FromCol,
+        NewRow is ToRow,
+        Dir=r,
+        check_horizontal_line(ToRow,NewCol,FromCol,ToCol,r,Player).
+calculate_dir((FromRow, FromCol), (ToRow, ToCol), Dir,Player) :-   
    NewRow is ToRow,
    NewCol is ToCol,
    check_odd(FromRow, FromCol,0),
-   check_diagonal((NewRow, NewCol), (FromRow, FromCol), Dir).
+   check_diagonal((NewRow, NewCol), (FromRow, FromCol),(ToRow, ToCol), Dir,Player).
 
-check_diagonal((FromRow, FromCol), (FromRow, FromCol), Dir).
-check_diagonal((NewRow, NewCol), (FromRow, FromCol), ul) :-
+check_vertical_line(Col, FromRow, FromRow, ToRow, Dir,Player).
+check_vertical_line(Col, NewRow, FromRow, ToRow, d,Player):-
+    NextRow is NewRow +1,
+    valid_position(NextRow,Col),
+    conditional_piece_at(Board, (NewRow, Col),(FromRow, Col),(ToRow, Col),Player),
+    check_vertical_line(Col, NextRow, FromRow, ToRow, Dir,Player).
+
+check_vertical_line(Col, NewRow, FromRow, ToRow, u,Player):-
+    NextRow is NewRow -1,
+    valid_position(NextRow,Col),
+    conditional_piece_at(Board, (NewRow, Col),(FromRow, Col),(ToRow, Col),Player),
+    check_vertical_line(Col, NextRow, FromRow, ToRow, Dir,Player).
+
+check_horizontal_line(Row, FromCol, FromCol, ToCol, Dir,Player).
+check_horizontal_line(Row, NewCol, FromCol, ToCol, l,Player):-
+    NextCol is NewCol +1,
+    valid_position(Row,NextCol),
+    conditional_piece_at(Board, (Row, NewCol),(Row, FromCol),(Row, ToCol),Player),
+    check_horizontal_line(Row, NewCol, FromCol, ToCol, l,Player).
+
+check_horizontal_line(Row, NewCol, FromCol, ToCol, r,Player):-
+    NextCol is NewCol -1,
+    valid_position(Row,NextCol),
+    conditional_piece_at(Board, (Row, NewCol),(Row, FromCol),(Row, ToCol),Player),
+    check_horizontal_line(Row, NewCol, FromCol, ToCol, l,Player).
+
+
+
+check_diagonal((FromRow, FromCol), (FromRow, FromCol),(ToRow, ToCol), Dir,Player).
+check_diagonal((NewRow, NewCol), (FromRow, FromCol),(ToRow, ToCol), ul,Player) :-
   NextRow is NewRow + 1,
   NextCol is NewCol + 1,
   valid_position(NextRow,NextCol),
-  check_diagonal((NextRow, NextCol), (FromRow, FromCol), ul).
-check_diagonal((NewRow, NewCol), (FromRow, FromCol), ur) :-
+  conditional_piece_at(Board, (NewRow, NewCol),(FromRow, FromCol),(ToRow, ToCol),Player),
+  check_diagonal((NextRow, NextCol), (FromRow, FromCol),(ToRow, ToCol), ul,Player).
+check_diagonal((NewRow, NewCol), (FromRow, FromCol),(ToRow, ToCol), ur,Player) :-
   NextRow is NewRow + 1,
-  NextCol is NewCol - 1,   
+  NextCol is NewCol - 1,
   valid_position(NextRow,NextCol),
-  check_diagonal((NextRow, NextCol), (FromRow, FromCol), ur).
+  conditional_piece_at(Board, (NewRow, NewCol),(FromRow, FromCol),(ToRow, ToCol),Player),   
+  check_diagonal((NextRow, NextCol), (FromRow, FromCol),(ToRow, ToCol), ur,Player).
 
-check_diagonal((NewRow, NewCol), (FromRow, FromCol), dl) :-
+check_diagonal((NewRow, NewCol), (FromRow, FromCol),(ToRow, ToCol), dl,Player) :-
   NextRow is NewRow - 1,
   NextCol is NewCol + 1,
   valid_position(NextRow,NextCol),
-  check_diagonal((NextRow, NextCol), (FromRow, FromCol), dl).
+  conditional_piece_at(Board, (NewRow, NewCol),(FromRow, FromCol),(ToRow, ToCol),Player),
+  check_diagonal((NextRow, NextCol), (FromRow, FromCol),(ToRow, ToCol), dl,Player).
 
-check_diagonal((NewRow, NewCol), (FromRow, FromCol), dr) :-
+check_diagonal((NewRow, NewCol), (FromRow, FromCol),(ToRow, ToCol), dr,Player) :-
+  
   NextRow is NewRow - 1,
   NextCol is NewCol - 1,
   valid_position(NextRow,NextCol),
-  check_diagonal((NextRow, NextCol), (FromRow, FromCol), dr).
+  conditional_piece_at(Board, (NewRow, NewCol),(FromRow, FromCol),(ToRow, ToCol),Player),
+  check_diagonal((NextRow, NextCol), (FromRow, FromCol),(ToRow, ToCol), dr,Player).
 
 check_odd(Row, Col, Odd):-
     N is Row + Col,
@@ -239,6 +292,16 @@ make_move(Board, (FromRow, FromCol),(ToRow, ToCol),(FinalRow,FinalCol), NewBoard
 piece_at(Board, (Row, Col), Piece) :-
     nth1(Row, Board, BoardRow),
     nth1(Col, BoardRow, Piece).
+
+conditional_piece_at(Board, (FromRow, FromCol),(FromRow, FromCol),(ToRow, ToCol),Player):-
+    piece_at(Board, (FromRow, FromCol), Player).
+
+conditional_piece_at(Board, (ToRow, ToCol),(FromRow, FromCol),(ToRow, ToCol),Player):-
+    other_player(Player, NewPlayer),
+    piece_at(Board, (ToRow, ToCol),NewPlayer).
+
+conditional_piece_at(Board, (Row, Col),(FromRow, FromCol),(ToRow, ToCol),Player):-
+    piece_at(Board, (Row, Col),e).
 
 set_cell(Board, (Row, Col), Value, NewBoard) :-
     nth1(Row, Board, OldRow),

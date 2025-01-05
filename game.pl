@@ -51,8 +51,11 @@ translate(3, 3).
 translate(4, 2).
 translate(5, 1).
 
+% Play game with difficulty settings and modes
+% Handles the game flow based on player mode and difficulty level
 
-% Play game with difficulty
+% Case 1: Player vs Computer (PVC) mode with easy difficulty
+% If the current player is black ('b'), the bot makes an easy move, and the game continues
 play_game(Board, Player) :-
     player_mode(pvc),
     difficulty(easy),
@@ -63,6 +66,9 @@ play_game(Board, Player) :-
     next_player(Player, NextPlayer),
     play_game(NewBoard, NextPlayer).
 
+
+% Case 2: Player vs Computer (PVC) mode with medium difficulty
+% If the current player is black ('b'), the bot makes a medium-difficulty move, and the game continues
 play_game(Board, Player) :-
     player_mode(pvc),
     difficulty(medium),
@@ -74,6 +80,9 @@ play_game(Board, Player) :-
     game_over(NewBoard,NextPlayer),
     play_game(NewBoard, NextPlayer).
 
+
+% Case 3: Computer vs Player (CVP) mode with easy difficulty
+% If the current player is white ('w'), the bot makes an easy move, and the game continues
 play_game(Board, Player) :-
     player_mode(cvp),
     difficulty(easy),
@@ -85,6 +94,9 @@ play_game(Board, Player) :-
     game_over(NewBoard,NextPlayer),
     play_game(NewBoard, NextPlayer).
 
+
+% Case 4: Computer vs Player (CVP) mode with medium difficulty
+% If the current player is white ('w'), the bot makes a medium-difficulty move, and the game continues
 play_game(Board, Player) :-
     player_mode(cvp),
     difficulty(medium),
@@ -96,30 +108,38 @@ play_game(Board, Player) :-
     game_over(NewBoard,NextPlayer),
     play_game(NewBoard, NextPlayer).
 
+
+% Case 5: Computer vs Computer (CVC) mode with both bots on easy difficulty
+% The game alternates between two bots playing at easy difficulty
 play_game(Board, Player) :-
     player_mode(cvc),
     difficulty1(easy),
     difficulty2(easy),
     play_turn_cvc(Board, Player, easy, easy).
 
+% Case 6: Computer vs Computer (CVC) mode with the first bot on easy difficulty and the second bot on medium difficulty
 play_game(Board, Player) :-
     player_mode(cvc),
     difficulty1(easy),
     difficulty2(medium),
     play_turn_cvc(Board, Player, easy, medium).
 
+% Case 7: Computer vs Computer (CVC) mode with the first bot on medium difficulty and the second bot on easy difficulty
 play_game(Board, Player) :-
     player_mode(cvc),
     difficulty1(medium),
     difficulty2(easy),
     play_turn_cvc(Board, Player, medium, easy).
 
+% Case 8: Computer vs Computer (CVC) mode with both bots on medium difficulty
 play_game(Board, Player) :-
     player_mode(cvc),
     difficulty1(medium),
     difficulty2(medium),
     play_turn_cvc(Board, Player, medium, medium).
 
+% Plays a turn in CVC mode
+% Bot1 plays its turn based on Difficulty1, then Bot2 plays based on Difficulty2
 play_turn_cvc(Board, Bot, Difficulty1, Difficulty2) :-
     bot_move(Board, Bot, Difficulty1, NewBoard),
     display_game(NewBoard),
@@ -127,7 +147,7 @@ play_turn_cvc(Board, Bot, Difficulty1, Difficulty2) :-
     game_over(NewBoard, Bot2),
     play_turn_cvc(NewBoard, Bot2, Difficulty2, Difficulty1).
 
-% Bot move based on difficulty
+% Determines the bot's move based on the given difficulty level (easy or medium)
 bot_move(Board, Player, easy, NewBoard) :-
     bot_easy_move(Board,Player, NewBoard).
 
@@ -137,6 +157,7 @@ bot_move(Board, Player, medium, NewBoard) :-
     BestMove = (From, To, Final),
     make_move(Board, From, To, Final, NewBoard).
 
+% Finds the best move for medium difficulty by evaluating scores of all valid moves
 find_best_medium_move(Board, Player, Moves, BestMove) :-
     findall(
         (Score, Move),
@@ -147,17 +168,19 @@ find_best_medium_move(Board, Player, Moves, BestMove) :-
     sort(ScoredMoves, SortedMoves),
     reverse(SortedMoves, [(_, BestMove)|_]).
 
-% Bot easy move
+% Bot's easy move: Randomly selects a move from the list of valid moves
 bot_easy_move(Board, Player,NewBoard) :-
     get_all_valid_moves(Board, Player, Moves),
     random_member((From, To, Final), Moves),
     make_move(Board, From, To, Final, NewBoard).
 
+% Bot's medium move: Selects the best move from the list
 bot_medium_move(Board, NewBoard) :-
     get_all_valid_moves(Board, b, Moves),
     find_best_move(Board, Moves, (0, [], []), BestMove),
     make_move(Board, BestMove, NewBoard).
 
+% Evaluates a move by considering its impact on the board
 value(Board, (From, To, Final), Score) :-
     Final = (FinalRow, FinalCol),
     make_move(Board, From, To, (FinalRow, FinalCol), NewBoard),
@@ -166,18 +189,19 @@ value(Board, (From, To, Final), Score) :-
     find_best_moves(Board, Player, Moves, BestMoves),
     best_move((From, To , Final), BestMoves, Score).
 
-
+% Assigns scores to moves based on whether they are in the list of best moves
 best_move((From, To, Final), BestMoves,2):-
     member((From, To, Final), BestMoves).
 best_move((From, To, Final), BestMoves,1).
 
+% Counts the number of moves and best moves
 count(Moves, BestMoves):-
     length(Moves, LenMoves),
     length(BestMoves, LenBestMoves),
     write('Number of moves: '), write(LenMoves), nl,
     write('Number of best moves: '), write(LenBestMoves), nl.
 
-
+% Finds the best moves by ensuring the resulting position cannot be captured
 find_best_moves(Board, Player, Moves, BestMoves) :-
         findall(
             Move,
@@ -189,6 +213,7 @@ find_best_moves(Board, Player, Moves, BestMoves) :-
             \+ can_be_captured(OpponentMoves, Final)),
             BestMoves).
 
+% Checks if a position can be captured
 can_be_captured([], _) :- false.
 can_be_captured([(_, Target, _)|Rest], Position) :-
     can_be_captured_condition(Rest, Target, Position).
@@ -196,6 +221,7 @@ can_be_captured_condition(Rest,Position, Position).
 can_be_captured_condition(Rest,Target, Position):-
     can_be_captured(Rest,Position).
 
+% Selects a random member from a list
 random_member(X, List) :-
     length(List, Len),
     random(0, Len, Index),
@@ -341,7 +367,8 @@ direction_to_delta(Board, (FromRow,FromCol), dr,(ToRow, ToCol), Final) :-
 
 
 
-% Make a move
+% Makes a move on the board: moves a piece from (FromRow, FromCol) to (FinalRow, FinalCol).
+% It first removes the piece from the source position, then places it on the destination.
 make_move(Board, (FromRow, FromCol),(ToRow, ToCol),(FinalRow,FinalCol), NewBoard) :-
     piece_at(Board, (FromRow, FromCol), Piece),
     set_cell(Board, (FromRow, FromCol), e, TempBoard),
@@ -349,33 +376,39 @@ make_move(Board, (FromRow, FromCol),(ToRow, ToCol),(FinalRow,FinalCol), NewBoard
     set_cell(TempBoard_, (FinalRow, FinalCol), Piece, NewBoard).
     
 
-% Helper predicates
+% Helper predicate: Retrieves the piece at a given position (Row, Col) on the board
 piece_at(Board, (Row, Col), Piece) :-
     nth1(Row, Board, BoardRow),
     nth1(Col, BoardRow, Piece).
 
+% Helper predicate: Sets a new value at a specific position (Row, Col) in the Board
 set_cell(Board, (Row, Col), Value, NewBoard) :-
     nth1(Row, Board, OldRow),
     replace_nth(Col, OldRow, Value, NewRow),
     replace_nth(Row, Board, NewRow, NewBoard).
 
+% Helper predicate: Replaces the Nth element of a list with a new value
 replace_nth(1, [_|T], X, [X|T]) :- !.
 replace_nth(N, [H|T], X, [H|R]) :-
     N > 1,
     N1 is N - 1,
     replace_nth(N1, T, X, R).
 
+% Validates if a position (Row, Col) is within the bounds of the board
 valid_position(Row, Col) :-
     board_size(MaxCol, MaxRow),
     Row > 0, Row =< MaxRow,
     Col > 0, Col =< MaxCol.
 
+% Predicate to switch the current player to the next player
 next_player(w, b).
 next_player(b, w).
 
+% Predicate to get the opponent of a given player
 other_player(w, b).
 other_player(b, w).
 
+% Retrieves all valid moves for a given player on the current board
 get_all_valid_moves(Board, Player, Moves) :-
     findall(
         (From, To, Final),

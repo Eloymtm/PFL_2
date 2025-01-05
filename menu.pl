@@ -14,9 +14,10 @@ display_main_menu :-
     write('=================================\n'),
     write('1. Player vs Player\n'),
     write('2. Player vs Computer\n'),
-    write('3. Computer vs Computer\n'),
-    write('4. How to Play\n'),
-    write('5. Exit\n'),
+    write('3. Computer vs Player\n'),
+    write('4. Computer vs Computer\n'),
+    write('5. How to Play\n'),
+    write('6. Exit\n'),
     write('=================================\n'),
     write('Choose an option (1-5): ').
 
@@ -39,9 +40,13 @@ handle_menu_option(2) :-
     select_difficulty.
 handle_menu_option(3) :-
     retractall(player_mode(_)),
+    asserta(player_mode(cvp)),
+    select_difficulty.
+handle_menu_option(4) :-
+    retractall(player_mode(_)),
     asserta(player_mode(cvc)),
     select_difficulty_cvc.
-handle_menu_option(4) :-
+handle_menu_option(5) :-
     display_rules,
     menu.
 handle_menu_option(5) :-
@@ -127,13 +132,13 @@ handle_difficulty_option_cvc2(1) :-
     asserta(difficulty2(easy)),
     initial_board(Board),
     display_game(Board),
-    play_game_cvc(Board, w).
+    play_game(Board, w).
 handle_difficulty_option_cvc2(2) :-
     retractall(difficulty2(_)),
     asserta(difficulty2(medium)),
     initial_board(Board),
     display_game(Board),
-    play_game_cvc(Board, w).
+    play_game(Board, w).
 handle_difficulty_option_cvc2(_) :-
     write('Invalid option! Please try again.\n'),
     sleep(2),

@@ -13,6 +13,7 @@ play :-
 % Initial board setup
 initial_board([[b,w,b,w,b,w,b,w,b],[w,e,e,e,e,e,e,e,w],[e,e,e,e,e,e,e,e,e],[b,e,e,e,e,e,e,e,b],[w,b,w,b,w,b,w,b,w]]).
 inversa([[w,b,w,b,w,b,w,b,w],[b,e,e,e,e,e,e,e,b],[e,e,e,e,e,e,e,e,e],[w,e,e,e,e,e,e,e,w],[b,w,b,w,b,w,b,w,b]]).
+final_board([[w,e,e,e,e,e,e,e,e],[e,e,e,w,e,e,e,e,e],[e,e,e,e,e,e,e,e,e],[b,e,e,e,e,e,e,e,e],[e,e,e,e,e,e,e,e,e]]).
 
 % Display the game board
 display_game(Board) :-
@@ -57,38 +58,143 @@ play_game(Board, Player) :-
     difficulty(easy),
     Player = b,
     !,
-    bot_easy_move(Board, NewBoard),
+    bot_move(Board,Player,easy, NewBoard),
     display_game(NewBoard),
     next_player(Player, NextPlayer),
     play_game(NewBoard, NextPlayer).
 
-play_game_cvc(Board, Player) :-
-    player_mode(cvc),
-    difficulty1(Difficulty1),
-    difficulty2(Difficulty2),
-    play_turn_cvc(Board, Player, Difficulty1, Difficulty2).
+play_game(Board, Player) :-
+    player_mode(pvc),
+    difficulty(medium),
+    Player = b,
+    !,
+    bot_move(Board,Player,medium, NewBoard),
+    display_game(NewBoard),
+    next_player(Player, NextPlayer),
+    game_over(NewBoard,NextPlayer),
+    play_game(NewBoard, NextPlayer).
 
-play_turn_cvc(Board, w, Difficulty1, Difficulty2) :-
-    bot_move(Board, w, Difficulty1, NewBoard),
+play_game(Board, Player) :-
+    player_mode(cvp),
+    difficulty(easy),
+    Player = w,
+    !,
+    bot_move(Board,Player,easy, NewBoard),
     display_game(NewBoard),
-    (game_over(NewBoard, w) -> announce_winner(w) ; play_turn_cvc(NewBoard, b, Difficulty1, Difficulty2)).
-play_turn_cvc(Board, b, Difficulty1, Difficulty2) :-
-    bot_move(Board, b, Difficulty2, NewBoard),
+    next_player(Player, NextPlayer),
+    game_over(NewBoard,NextPlayer),
+    play_game(NewBoard, NextPlayer).
+
+play_game(Board, Player) :-
+    player_mode(cvp),
+    difficulty(medium),
+    Player = w,
+    !,
+    bot_move(Board,Player,medium, NewBoard),
     display_game(NewBoard),
-    (game_over(NewBoard, b) -> announce_winner(b) ; play_turn_cvc(NewBoard, w, Difficulty1, Difficulty2)).
+    next_player(Player, NextPlayer),
+    game_over(NewBoard,NextPlayer),
+    play_game(NewBoard, NextPlayer).
+
+play_game(Board, Player) :-
+    player_mode(cvc),
+    difficulty1(easy),
+    difficulty2(easy),
+    play_turn_cvc(Board, Player, easy, easy).
+
+play_game(Board, Player) :-
+    player_mode(cvc),
+    difficulty1(easy),
+    difficulty2(medium),
+    play_turn_cvc(Board, Player, easy, medium).
+
+play_game(Board, Player) :-
+    player_mode(cvc),
+    difficulty1(medium),
+    difficulty2(easy),
+    play_turn_cvc(Board, Player, medium, easy).
+
+play_game(Board, Player) :-
+    player_mode(cvc),
+    difficulty1(medium),
+    difficulty2(medium),
+    play_turn_cvc(Board, Player, medium, medium).
+
+play_turn_cvc(Board, Bot, Difficulty1, Difficulty2) :-
+    bot_move(Board, Bot, Difficulty1, NewBoard),
+    display_game(NewBoard),
+    next_player(Bot, Bot2),
+    game_over(NewBoard, Bot2),
+    play_turn_cvc(NewBoard, Bot2, Difficulty2, Difficulty1).
 
 % Bot move based on difficulty
 bot_move(Board, Player, easy, NewBoard) :-
-    bot_easy_move(Board, NewBoard).
-%bot_move(Board, Player, medium, NewBoard) :-
- %   bot_medium_move(Board, NewBoard). % Implement this function for medium difficulty
+    bot_easy_move(Board,Player, NewBoard).
+
+bot_move(Board, Player, medium, NewBoard) :-
+    get_all_valid_moves(Board, Player, Moves),
+    find_best_medium_move(Board, Player, Moves, BestMove),
+    BestMove = (From, To, Final),
+    make_move(Board, From, To, Final, NewBoard).
+
+find_best_medium_move(Board, Player, Moves, BestMove) :-
+    findall(
+        (Score, Move),
+        (member(Move, Moves),
+         value(Board, Move, Score)),
+        ScoredMoves
+    ),
+    sort(ScoredMoves, SortedMoves),
+    reverse(SortedMoves, [(_, BestMove)|_]).
 
 % Bot easy move
-bot_easy_move(Board, NewBoard) :-
-    get_all_valid_moves(Board, b, Moves),
+bot_easy_move(Board, Player,NewBoard) :-
+    get_all_valid_moves(Board, Player, Moves),
     random_member((From, To, Final), Moves),
     make_move(Board, From, To, Final, NewBoard).
 
+bot_medium_move(Board, NewBoard) :-
+    get_all_valid_moves(Board, b, Moves),
+    find_best_move(Board, Moves, (0, [], []), BestMove),
+    make_move(Board, BestMove, NewBoard).
+
+value(Board, (From, To, Final), Score) :-
+    Final = (FinalRow, FinalCol),
+    make_move(Board, From, To, (FinalRow, FinalCol), NewBoard),
+    next_player(Player, NextPlayer),
+    get_all_valid_moves(Board, Player, Moves),
+    find_best_moves(Board, Player, Moves, BestMoves),
+    best_move((From, To , Final), BestMoves, Score).
+
+
+best_move((From, To, Final), BestMoves,2):-
+    member((From, To, Final), BestMoves).
+best_move((From, To, Final), BestMoves,1).
+
+count(Moves, BestMoves):-
+    length(Moves, LenMoves),
+    length(BestMoves, LenBestMoves),
+    write('Number of moves: '), write(LenMoves), nl,
+    write('Number of best moves: '), write(LenBestMoves), nl.
+
+
+find_best_moves(Board, Player, Moves, BestMoves) :-
+        findall(
+            Move,
+            (member(Move, Moves),
+            Move = (From, To, Final),
+            make_move(Board, From, To, Final, NewBoard),
+            next_player(Player, NextPlayer),
+            get_all_valid_moves(NewBoard, NextPlayer, OpponentMoves),
+            \+ can_be_captured(OpponentMoves, Final)),
+            BestMoves).
+
+can_be_captured([], _) :- false.
+can_be_captured([(_, Target, _)|Rest], Position) :-
+    can_be_captured_condition(Rest, Target, Position).
+can_be_captured_condition(Rest,Position, Position).
+can_be_captured_condition(Rest,Target, Position):-
+    can_be_captured(Rest,Position).
 
 random_member(X, List) :-
     length(List, Len),
@@ -96,26 +202,35 @@ random_member(X, List) :-
     nth0(Index, List, X).
 
 % Get valid move
-get_valid_move(Board, Player, (FromRow, FromCol), (ToRow, ToCol), Final) :-
+get_valid_move(Board, Player, (FromRow, FromCol), (ToRow, ToCol), Final):-
     repeat,
     write('Enter source position (row col): '),
     read((AlmostRow, FromCol)),
     translate(AlmostRow, FromRow),
-    (valid_position(FromRow, FromCol) -> 
-        write('Enter destination position (row col): '),
-        read((Almost, ToCol)),
-        translate(Almost, ToRow),
-        (valid_move(Board, Player, (FromRow, FromCol), (ToRow, ToCol), Final) -> 
-            true
-        ;   
-            write('Invalid move, try again.'), nl,
-            fail
-        )
-    ;   
-        write('Invalid position, try again.'), nl,
-        fail
-    ),
+    check_source_position(Board, Player, FromRow, FromCol),
+    !,
+    write('Enter destination position (row col): '),
+    read((Almost, ToCol)),
+    translate(Almost, ToRow),
+    check_destination_move(Board, Player, (FromRow, FromCol), (ToRow, ToCol), Final),
+    !,
     other_player(Player, OtherPlayer).
+
+check_source_position(_, _, Row, Col) :-
+    valid_position(Row, Col),
+    !.
+check_source_position(_, _, _, _):-
+    write('Invalid position, try again.'),
+    nl,
+    fail.
+
+check_destination_move(Board, Player, From, To, Final):-
+    valid_move(Board, Player, From, To, Final),
+    !.
+check_destination_move(_, _, _, _, _):-
+    write('Invalid move, try again.'),
+    nl,
+    fail.
 
 % Valid move check
 valid_move(Board, Player, From, To ,Final) :-
@@ -127,13 +242,13 @@ valid_move(Board, Player, From, To ,Final) :-
         
 
 calculate_dir((FromRow, FromCol), (ToRow, ToCol), Dir) :-
-        ToRow < FromRow, ToCol is FromCol -> Dir = u.
+        ToRow < FromRow, ToCol is FromCol, Dir = u.
 calculate_dir((FromRow, FromCol), (ToRow, ToCol), Dir) :-
-        ToRow > FromRow, ToCol is FromCol -> Dir = d.
+        ToRow > FromRow, ToCol is FromCol, Dir = d.
 calculate_dir((FromRow, FromCol), (ToRow, ToCol), Dir) :-
-        ToRow is FromRow, ToCol < FromCol -> Dir = l.
+        ToRow is FromRow, ToCol < FromCol, Dir = l.
 calculate_dir((FromRow, FromCol), (ToRow, ToCol), Dir) :-
-        ToRow is FromRow, ToCol > FromCol -> Dir = r.
+        ToRow is FromRow, ToCol > FromCol, Dir = r.
 calculate_dir((FromRow, FromCol), (ToRow, ToCol), Dir) :-   
    NewRow is ToRow,
    NewCol is ToCol,
@@ -224,22 +339,7 @@ direction_to_delta(Board, (FromRow,FromCol), dr,(ToRow, ToCol), Final) :-
     OtherPiece = e,
     Final = (NewRow, NewCol).
 
-    
-direction_to_target(Board, From, Dir, To) :-
-    direction_to_delta(Dir, From, InitialTarget),
-    other_player(Player, OpponentColor),
-    find_collision(Board, From, InitialTarget, To, OpponentColor).
-% Find collision point
-find_collision(Board, (Row, Col), (DRow, DCol), (FinalRow, FinalCol), OpponentColor) :-
-    NextRow is Row + DRow,
-    NextCol is Col + DCol,
-    valid_position(NextRow, NextCol),
-    (piece_at(Board, (NextRow, NextCol), OpponentColor) ->
-        FinalRow = NextRow,
-        FinalCol = NextCol;   
-        piece_at(Board, (NextRow, NextCol), e),
-        find_collision(Board, (NextRow, NextCol), (DRow, DCol), (FinalRow, FinalCol), OpponentColor)
-    ).
+
 
 % Make a move
 make_move(Board, (FromRow, FromCol),(ToRow, ToCol),(FinalRow,FinalCol), NewBoard) :-
@@ -310,7 +410,14 @@ validate_move(Board, Player, From, To, Final) :-
 % Improved game over check using get_all_valid_moves
 game_over(Board, Player) :-
     get_all_valid_moves(Board, Player, Moves),
-    length(Moves, 0).
+    length(Moves, Number),
+    condition(Player,Number).
+    
+
+condition(Player, 0):-
+    announce_winner(Player),
+    halt.
+condition(Player,_).
 
 % Helper predicate to display all valid moves
 display_valid_moves(Board, Player) :-
@@ -341,4 +448,5 @@ play_game(Board, Player) :-
     make_move(Board, From, To, Final, NewBoard),
     display_game(NewBoard),
     next_player(Player, NextPlayer),
+    game_over(NewBoard,NextPlayer),
     play_game(NewBoard, NextPlayer).

@@ -14,11 +14,12 @@ display_main_menu :-
     write('=================================\n'),
     write('1. Player vs Player\n'),
     write('2. Player vs Computer\n'),
-    write('3. Computer vs Computer\n'),
-    write('4. How to Play\n'),
-    write('5. Exit\n'),
+    write('3. Computer vs Player\n'),
+    write('4. Computer vs Computer\n'),
+    write('5. How to Play\n'),
+    write('6. Exit\n'),
     write('=================================\n'),
-    write('Choose an option (1-5): ').
+    write('Choose an option (1-6): ').
 
 % Menu handler
 menu :-
@@ -36,15 +37,23 @@ handle_menu_option(1) :-
 handle_menu_option(2) :-
     retractall(player_mode(_)),
     asserta(player_mode(pvc)),
-    select_difficulty.
+    initial_board(Board),
+    display_game(Board),
+    play_game(Board, w).
 handle_menu_option(3) :-
+    retractall(player_mode(_)),
+    asserta(player_mode(cvp)),
+    initial_board(Board),
+    display_game(Board),
+    play_game(Board, w).
+handle_menu_option(4) :-
     retractall(player_mode(_)),
     asserta(player_mode(cvc)),
     select_difficulty_cvc.
-handle_menu_option(4) :-
+handle_menu_option(5) :-
     display_rules,
     menu.
-handle_menu_option(5) :-
+handle_menu_option(6) :-
     write('Thank you for playing!\n'),
     halt.
 handle_menu_option(_) :-

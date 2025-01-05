@@ -1,5 +1,4 @@
 :- use_module(library(lists)).
-:- use_module(library(random)).
 
 % Game configuration
 board_size(9, 5).  % 9x5 board
@@ -13,6 +12,7 @@ play :-
 % Initial board setup
 initial_board([[b,w,b,w,b,w,b,w,b],[w,e,e,e,e,e,e,e,w],[e,e,e,e,e,e,e,e,e],[b,e,e,e,e,e,e,e,b],[w,b,w,b,w,b,w,b,w]]).
 inversa([[w,b,w,b,w,b,w,b,w],[b,e,e,e,e,e,e,e,b],[e,e,e,e,e,e,e,e,e],[w,e,e,e,e,e,e,e,w],[b,w,b,w,b,w,b,w,b]]).
+final_board([[w,e,e,e,e,e,e,e,e],[e,e,e,e,e,e,e,e,e],[e,e,e,e,e,e,e,e,e],[e,e,e,e,e,e,e,e,e],[b,e,e,e,e,e,e,e,b]]).
 
 % Display the game board
 display_game(Board) :-
@@ -234,12 +234,11 @@ find_collision(Board, (Row, Col), (DRow, DCol), (FinalRow, FinalCol), OpponentCo
     NextRow is Row + DRow,
     NextCol is Col + DCol,
     valid_position(NextRow, NextCol),
-    (piece_at(Board, (NextRow, NextCol), OpponentColor) ->
-        FinalRow = NextRow,
-        FinalCol = NextCol;   
-        piece_at(Board, (NextRow, NextCol), e),
-        find_collision(Board, (NextRow, NextCol), (DRow, DCol), (FinalRow, FinalCol), OpponentColor)
-    ).
+    piece_at(Board, (NextRow, NextCol), OpponentColor),
+    FinalRow = NextRow,
+    FinalCol = NextCol;   
+    piece_at(Board, (NextRow, NextCol), e),
+    find_collision(Board, (NextRow, NextCol), (DRow, DCol), (FinalRow, FinalCol), OpponentColor).
 
 % Make a move
 make_move(Board, (FromRow, FromCol),(ToRow, ToCol),(FinalRow,FinalCol), NewBoard) :-
@@ -308,9 +307,18 @@ validate_move(Board, Player, From, To, Final) :-
     direction_to_delta(Board, From, Dir, To, Final).
 
 % Improved game over check using get_all_valid_moves
+
 game_over(Board, Player) :-
     get_all_valid_moves(Board, Player, Moves),
-    length(Moves, 0).
+    length(Moves, Number),
+    condition(Player,Number).
+    
+
+condition(Player, 0):-
+    announce_winner(Player),
+    halt.
+condition(Player,_).
+
 
 % Helper predicate to display all valid moves
 display_valid_moves(Board, Player) :-
@@ -337,8 +345,24 @@ announce_winner(Player) :-
 
 play_game(Board, Player) :-
     format('~w\'s turn.~n', [Player]),
+    
     get_valid_move(Board, Player, From, To, Final),
     make_move(Board, From, To, Final, NewBoard),
     display_game(NewBoard),
     next_player(Player, NextPlayer),
+    game_over(NewBoard,NextPlayer),
     play_game(NewBoard, NextPlayer).
+
+
+play_game_with_bot(Board, Player) :-
+    player_mode(pvc),
+    difficulty(easy),
+    Player = b,
+    !,
+    bot_easy_move(Board, NewBoard),
+    get_valid_move(Board, Player, From, To, Final),
+    make_move(Board, From, To, Final, NewBoard),
+    display_game(NewBoard),
+    next_player(Player, NextPlayer),
+    game_over(Board,Player),
+    play_game_with_bot(NewBoard, NextPlayer).
